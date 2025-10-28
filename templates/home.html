@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная - Платформа Курсов{% endblock %}
+
+{% block content %}
+<div class="hero-section py-5" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white;">
+    <div class="container text-center py-5">
+        <h1 class="display-4 fw-bold mb-4">Обучайтесь в удобном формате</h1>
+        <p class="lead mb-4">Онлайн-курсы, офлайн-занятия и вебинары от лучших преподавателей</p>
+        <a href="/courses/" class="btn btn-light btn-lg me-2">
+            <i class="bi bi-search"></i> Каталог курсов
+        </a>
+        {% if not user.is_authenticated %}
+        <a href="/register/" class="btn btn-outline-light btn-lg">
+            <i class="bi bi-person-plus"></i> Присоединиться
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row mb-5">
+        <div class="col-md-4 text-center">
+            <div class="mb-3">
+                <i class="bi bi-play-circle display-4" style="color: #10b981;"></i>
+            </div>
+            <h4>Онлайн-курсы</h4>
+            <p class="text-muted">Изучайте материалы в любое время в удобном темпе</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <div class="mb-3">
+                <i class="bi bi-building display-4" style="color: #f59e0b;"></i>
+            </div>
+            <h4>Офлайн-занятия</h4>
+            <p class="text-muted">Очное обучение с преподавателем и практикой</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <div class="mb-3">
+                <i class="bi bi-camera-video display-4" style="color: #3b82f6;"></i>
+            </div>
+            <h4>Вебинары</h4>
+            <p class="text-muted">Трансляции в реальном времени с возможностью задать вопросы</p>
+        </div>
+    </div>
+
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Популярные курсы</h2>
+            <a href="/courses/" class="text-decoration-none">Все курсы <i class="bi bi-arrow-right"></i></a>
+        </div>
+        
+        <div class="row">
+            {% for course in popular_courses %}
+            <div class="col-md-4 course-card">
+                <div class="card position-relative">
+                    {% if course.image %}
+                    <img src="{{ course.image.url }}" class="card-img-top" alt="{{ course.title }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center" style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="bi bi-book display-3 text-white"></i>
+                    </div>
+                    {% endif %}
+                    <span class="course-badge badge-{{ course.type }}">{{ course.get_type_display }}</span>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ course.title }}</h5>
+                        <p class="card-text text-muted">{{ course.description|truncatewords:15 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-primary fw-bold">{{ course.price }} ₽</span>
+                            <a href="/courses/{{ course.slug }}/" class="btn btn-sm btn-primary">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <p class="text-muted">Курсы появятся в ближайшее время</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Ближайшие вебинары</h2>
+            <a href="/courses/?type=webinar" class="text-decoration-none">Все вебинары <i class="bi bi-arrow-right"></i></a>
+        </div>
+        
+        <div class="row">
+            {% for webinar in upcoming_webinars %}
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <span class="badge bg-primary mb-2">Вебинар</span>
+                        <h5 class="card-title">{{ webinar.title }}</h5>
+                        <p class="card-text text-muted">{{ webinar.description|truncatewords:20 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i> {{ webinar.start_date|date:"d.m.Y H:i" }}
+                            </small>
+                            <a href="/courses/{{ webinar.slug }}/" class="btn btn-sm btn-outline-primary">Записаться</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <p class="text-muted">Вебинары появятся в ближайшее время</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

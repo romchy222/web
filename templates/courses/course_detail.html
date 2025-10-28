@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.title }} - Платформа Курсов{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            {% if course.image %}
+            <img src="{{ course.image.url }}" class="img-fluid rounded mb-4" alt="{{ course.title }}" style="width: 100%; max-height: 400px; object-fit: cover;">
+            {% else %}
+            <div class="bg-gradient rounded mb-4 d-flex align-items-center justify-content-center" style="height: 300px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="bi bi-book display-1 text-white"></i>
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <span class="badge badge-{{ course.type }} fs-6">{{ course.get_type_display }}</span>
+                {% if course.category %}
+                <span class="badge bg-secondary fs-6">{{ course.category.name }}</span>
+                {% endif %}
+            </div>
+
+            <h1 class="mb-3">{{ course.title }}</h1>
+
+            <div class="d-flex align-items-center mb-4">
+                <i class="bi bi-person-circle fs-4 me-2"></i>
+                <div>
+                    <strong>{{ course.instructor.get_full_name|default:course.instructor.username }}</strong>
+                    <br><small class="text-muted">Преподаватель</small>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Описание курса</h5>
+                    <p class="card-text">{{ course.description }}</p>
+                </div>
+            </div>
+
+            {% if course.type == 'offline' %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-geo-alt"></i> Место проведения</h5>
+                    <p class="card-text">{{ course.location }}</p>
+                    {% if course.max_students %}
+                    <p class="text-muted">Максимум участников: {{ course.max_students }}</p>
+                    <p class="text-muted">Записано: {{ enrollments_count }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if course.type == 'webinar' and course.start_date %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-calendar-event"></i> Дата и время</h5>
+                    <p class="card-text">{{ course.start_date|date:"d.m.Y H:i" }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if modules %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-list-ul"></i> Программа курса</h5>
+                    <div class="accordion" id="modulesAccordion">
+                        {% for module in modules %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#module{{ module.id }}">
+                                    {{ forloop.counter }}. {{ module.title }}
+                                </button>
+                            </h2>
+                            <div id="module{{ module.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                                 data-bs-parent="#modulesAccordion">
+                                <div class="accordion-body">
+                                    <p class="text-muted">{{ module.description }}</p>
+                                    <ul class="list-unstyled">
+                                        {% for lesson in module.lessons.all %}
+                                        <li class="mb-2">
+                                            <i class="bi bi-play-circle text-primary"></i> {{ lesson.title }}
+                                            {% if lesson.duration %}
+                                            <small class="text-muted">({{ lesson.duration }} мин)</small>
+                                            {% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if reviews %}
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-star"></i> Отзывы</h5>
+                    {% for review in reviews %}
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
+                            <div>
+                                {% for i in "12345" %}
+                                <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %} text-warning"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <p class="mb-1">{{ review.comment }}</p>
+                        <small class="text-muted">{{ review.created_at|date:"d.m.Y" }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <h3 class="card-title text-primary mb-4">{{ course.price }} ₽</h3>
+                    
+                    {% if user.is_authenticated %}
+                        {% if is_enrolled %}
+                        <button class="btn btn-success w-100 mb-3" disabled>
+                            <i class="bi bi-check-circle"></i> Вы уже записаны
+                        </button>
+                        {% if enrollment %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Прогресс</span>
+                                <span>{{ enrollment.progress }}%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: {{ enrollment.progress }}%"></div>
+                            </div>
+                        </div>
+                        <a href="/my-courses/" class="btn btn-primary w-100">Продолжить обучение</a>
+                        {% endif %}
+                        {% else %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary w-100 mb-3">
+                                <i class="bi bi-cart-plus"></i> Записаться на курс
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% else %}
+                    <a href="/login/?next={{ request.path }}" class="btn btn-primary w-100 mb-3">
+                        Войдите, чтобы записаться
+                    </a>
+                    {% endif %}
+
+                    <hr>
+
+                    <div class="mb-2">
+                        <i class="bi bi-book"></i> 
+                        <strong>{{ modules.count }}</strong> модуля
+                    </div>
+                    <div class="mb-2">
+                        <i class="bi bi-play-circle"></i> 
+                        <strong>{{ lessons_count }}</strong> уроков
+                    </div>
+                    {% if course.start_date %}
+                    <div class="mb-2">
+                        <i class="bi bi-calendar"></i> 
+                        Начало: {{ course.start_date|date:"d.m.Y" }}
+                    </div>
+                    {% endif %}
+                    <div class="mb-2">
+                        <i class="bi bi-people"></i> 
+                        <strong>{{ enrollments_count }}</strong> студентов
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

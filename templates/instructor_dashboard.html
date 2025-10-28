@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Панель преподавателя{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Панель преподавателя</h1>
+        <a href="/instructor/create-course/" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Создать курс
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-book display-4 text-primary"></i>
+                    <h3 class="mt-2">{{ stats.total_courses }}</h3>
+                    <p class="text-muted mb-0">Курсов создано</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-people display-4 text-success"></i>
+                    <h3 class="mt-2">{{ stats.total_students }}</h3>
+                    <p class="text-muted mb-0">Всего студентов</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-star display-4 text-warning"></i>
+                    <h3 class="mt-2">{{ stats.avg_rating|floatformat:1 }}</h3>
+                    <p class="text-muted mb-0">Средний рейтинг</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-graph-up display-4 text-info"></i>
+                    <h3 class="mt-2">{{ stats.active_students }}</h3>
+                    <p class="text-muted mb-0">Активных студентов</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#my-courses">Мои курсы</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#students">Студенты</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#reviews">Отзывы</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <div id="my-courses" class="tab-pane fade show active">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Курс</th>
+                                    <th>Тип</th>
+                                    <th>Студентов</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in courses %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ course.title }}</strong>
+                                        <br><small class="text-muted">{{ course.category.name }}</small>
+                                    </td>
+                                    <td><span class="badge badge-{{ course.type }}">{{ course.get_type_display }}</span></td>
+                                    <td>{{ course.enrollments.count }}</td>
+                                    <td>
+                                        {% if course.is_published %}
+                                        <span class="badge bg-success">Опубликован</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Черновик</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="/courses/{{ course.slug }}/" class="btn btn-sm btn-outline-primary">Просмотр</a>
+                                        <a href="/admin/courses/course/{{ course.id }}/change/" class="btn btn-sm btn-outline-secondary">Редактировать</a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Нет созданных курсов</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="students" class="tab-pane fade">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Студент</th>
+                                    <th>Курс</th>
+                                    <th>Прогресс</th>
+                                    <th>Дата записи</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for enrollment in enrollments %}
+                                <tr>
+                                    <td>{{ enrollment.user.get_full_name|default:enrollment.user.username }}</td>
+                                    <td>{{ enrollment.course.title }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar" style="width: {{ enrollment.progress }}%">
+                                                {{ enrollment.progress }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ enrollment.enrolled_at|date:"d.m.Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Нет студентов</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="reviews" class="tab-pane fade">
+                    {% for review in reviews %}
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
+                                <small class="text-muted">· {{ review.course.title }}</small>
+                                <div class="mt-1">
+                                    {% for i in "12345" %}
+                                    <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %} text-warning"></i>
+                                    {% endfor %}
+                                </div>
+                                <p class="mt-2 mb-1">{{ review.comment }}</p>
+                                <small class="text-muted">{{ review.created_at|date:"d.m.Y H:i" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted">Нет отзывов</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

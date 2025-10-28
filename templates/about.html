@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}О нас - Платформа Курсов{% endblock %}
+
+{% block content %}
+<div class="hero-section py-5" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white;">
+    <div class="container text-center py-5">
+        <h1 class="display-4 fw-bold mb-3">О нашей платформе</h1>
+        <p class="lead">Современное образование в удобном формате</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row mb-5">
+        <div class="col-md-6">
+            <h2 class="mb-4">Наша миссия</h2>
+            <p class="lead">Сделать качественное образование доступным каждому</p>
+            <p>Мы создали платформу, которая объединяет лучших преподавателей и мотивированных студентов. Наша цель — дать возможность каждому человеку развиваться в выбранном направлении, независимо от местоположения и обстоятельств.</p>
+        </div>
+        <div class="col-md-6">
+            <img src="https://via.placeholder.com/600x400/6366f1/ffffff?text=Education" class="img-fluid rounded" alt="Образование">
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2>Почему выбирают нас</h2>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="mb-3">
+                <i class="bi bi-people display-3 text-primary"></i>
+            </div>
+            <h5>Опытные преподаватели</h5>
+            <p class="text-muted">Наши преподаватели — эксперты своего дела с многолетним опытом</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="mb-3">
+                <i class="bi bi-flexibility display-3 text-success"></i>
+            </div>
+            <h5>Гибкий формат</h5>
+            <p class="text-muted">Выбирайте между онлайн, офлайн обучением или вебинарами</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="mb-3">
+                <i class="bi bi-award display-3 text-warning"></i>
+            </div>
+            <h5>Сертификаты</h5>
+            <p class="text-muted">Получайте сертификаты о прохождении курсов</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="mb-3">
+                <i class="bi bi-headset display-3 text-info"></i>
+            </div>
+            <h5>Поддержка 24/7</h5>
+            <p class="text-muted">Всегда готовы помочь вам в процессе обучения</p>
+        </div>
+    </div>
+
+    <div class="row mb-5 bg-light rounded p-5">
+        <div class="col-md-3 text-center">
+            <h2 class="display-4 text-primary">1000+</h2>
+            <p class="text-muted">Студентов</p>
+        </div>
+        <div class="col-md-3 text-center">
+            <h2 class="display-4 text-success">100+</h2>
+            <p class="text-muted">Курсов</p>
+        </div>
+        <div class="col-md-3 text-center">
+            <h2 class="display-4 text-warning">50+</h2>
+            <p class="text-muted">Преподавателей</p>
+        </div>
+        <div class="col-md-3 text-center">
+            <h2 class="display-4 text-info">98%</h2>
+            <p class="text-muted">Довольных студентов</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 text-center mb-4">
+            <h2>Наша команда</h2>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                <span class="text-white display-4">АА</span>
+            </div>
+            <h5>Анна Александрова</h5>
+            <p class="text-muted">CEO & Основатель</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="rounded-circle bg-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                <span class="text-white display-4">ИП</span>
+            </div>
+            <h5>Иван Петров</h5>
+            <p class="text-muted">CTO</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="rounded-circle bg-warning d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                <span class="text-white display-4">МС</span>
+            </div>
+            <h5>Мария Сидорова</h5>
+            <p class="text-muted">Руководитель образовательного отдела</p>
+        </div>
+    </div>
+
+    <div class="text-center py-5">
+        <h2 class="mb-4">Присоединяйтесь к нам!</h2>
+        <p class="lead mb-4">Начните обучение уже сегодня</p>
+        <a href="/register/" class="btn btn-primary btn-lg">Зарегистрироваться</a>
+    </div>
+</div>
+{% endblock %}
