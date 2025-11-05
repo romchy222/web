@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+import uuid
 
 
 class Category(models.Model):
@@ -219,7 +220,6 @@ class Certificate(models.Model):
         return f"Certificate #{self.certificate_number} - {self.enrollment.user.username}"
     
     def generate_certificate_number(self):
-        import uuid
         return f"CERT-{uuid.uuid4().hex[:8].upper()}"
     
     def save(self, *args, **kwargs):

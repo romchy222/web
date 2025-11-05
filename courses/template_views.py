@@ -414,12 +414,17 @@ def lesson_detail_view(request, course_slug, lesson_id):
         progress.completed_at = timezone.now()
         progress.save()
         
-        # Update course progress
-        total_lessons = Lesson.objects.filter(module__course=course).count()
-        completed_lessons = LessonProgress.objects.filter(
-            enrollment=enrollment,
-            completed=True
-        ).count()
+        # Update course progress (optimized with single aggregation query)
+        from django.db.models import Count, Q
+        lesson_stats = Lesson.objects.filter(module__course=course).aggregate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(
+                lessonprogress__enrollment=enrollment,
+                lessonprogress__completed=True
+            ))
+        )
+        total_lessons = lesson_stats['total']
+        completed_lessons = lesson_stats['completed']
         enrollment.progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
         
         # Check if course is completed
@@ -429,7 +434,9 @@ def lesson_detail_view(request, course_slug, lesson_id):
             
             # Generate certificate
             from courses.models import Certificate
-            if not hasattr(enrollment, 'certificate'):
+            try:
+                cert = enrollment.certificate
+            except Certificate.DoesNotExist:
                 cert = Certificate.objects.create(enrollment=enrollment)
                 
                 # Create notification
@@ -450,10 +457,10 @@ def lesson_detail_view(request, course_slug, lesson_id):
         enrollment.save()
         return redirect('lesson_detail', course_slug=course_slug, lesson_id=lesson_id)
     
-    # Find previous and next lessons
-    all_lessons = []
-    for module in modules:
-        all_lessons.extend(module.lessons.all())
+    # Find previous and next lessons (optimized with single query)
+    all_lessons = list(Lesson.objects.filter(
+        module__course=course
+    ).select_related('module').order_by('module__order', 'order'))
     
     current_index = next((i for i, l in enumerate(all_lessons) if l.id == lesson.id), None)
     previous_lesson = all_lessons[current_index - 1] if current_index and current_index > 0 else None

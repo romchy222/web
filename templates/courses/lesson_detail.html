@@ -137,7 +137,14 @@
                     <!-- Video player -->
                     {% if lesson.video_url %}
                     <div class="video-container mb-4">
-                        <iframe src="{{ lesson.video_url }}" frameborder="0" allowfullscreen></iframe>
+                        {% comment %}Only allow trusted video platforms{% endcomment %}
+                        {% if 'youtube.com' in lesson.video_url or 'youtu.be' in lesson.video_url or 'vimeo.com' in lesson.video_url or 'rutube.ru' in lesson.video_url %}
+                        <iframe src="{{ lesson.video_url }}" frameborder="0" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Видео доступно только с проверенных платформ (YouTube, Vimeo, RuTube)
+                        </div>
+                        {% endif %}
                     </div>
                     {% elif lesson.video_file %}
                     <div class="video-container mb-4">
