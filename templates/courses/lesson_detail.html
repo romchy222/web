@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+{% load course_extras %}
+
+{% block title %}{{ lesson.title }} - {{ course.title }} - Платформа Курсов{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Боковая панель навигации -->
+        <div class="col-md-3">
+            <div class="card sticky-top" style="top: 80px; max-height: calc(100vh - 100px); overflow-y: auto;">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <a href="{% url 'course_detail' course.slug %}" class="text-decoration-none">
+                            <i class="bi bi-arrow-left"></i> {{ course.title }}
+                        </a>
+                    </h6>
+                    <small class="text-muted">Прогресс: {{ enrollment.progress }}%</small>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar" style="width: {{ enrollment.progress }}%"></div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for module in course.modules.all %}
+                        <div class="list-group-item border-0 bg-light">
+                            <small class="fw-bold text-muted text-uppercase">{{ module.title }}</small>
+                        </div>
+                        {% for module_lesson in module.lessons.all %}
+                        <a href="{% url 'lesson_detail' course.slug module_lesson.id %}" 
+                           class="list-group-item list-group-item-action border-0 py-2 {% if module_lesson.id == lesson.id %}active{% endif %}">
+                            <div class="d-flex align-items-center">
+                                {% if progress_dict|lookup:module_lesson.id %}
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                {% else %}
+                                    {% if module_lesson.lesson_type == 'video' %}
+                                    <i class="bi bi-play-circle me-2"></i>
+                                    {% elif module_lesson.lesson_type == 'quiz' %}
+                                    <i class="bi bi-question-circle me-2"></i>
+                                    {% elif module_lesson.lesson_type == 'assignment' %}
+                                    <i class="bi bi-clipboard-check me-2"></i>
+                                    {% else %}
+                                    <i class="bi bi-file-text me-2"></i>
+                                    {% endif %}
+                                {% endif %}
+                                <span class="small">{{ module_lesson.title }}</span>
+                                {% if module_lesson.lesson_type != 'text' %}
+                                <span class="badge badge-{{ module_lesson.lesson_type }} ms-auto small">
+                                    {{ module_lesson.get_lesson_type_display }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% if module_lesson.duration %}
+                            <small class="text-muted">{{ module_lesson.duration }} мин</small>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Основное содержимое урока -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0">{{ lesson.title }}</h4>
+                        {% if lesson.duration %}
+                        <small class="text-muted">
+                            <i class="bi bi-clock"></i> {{ lesson.duration }} минут
+                        </small>
+                        {% endif %}
+                    </div>
+                    {% if not lesson_progress.completed %}
+                        {% if can_complete %}
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="complete">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Завершить урок
+                            </button>
+                        </form>
+                        {% else %}
+                        <button class="btn btn-secondary" disabled title="Завершите предыдущие уроки в модуле">
+                            <i class="bi bi-lock"></i> Недоступно
+                        </button>
+                        <small class="text-muted d-block mt-1">Сначала завершите предыдущие уроки</small>
+                        {% endif %}
+                    {% else %}
+                    <span class="badge bg-success fs-6">
+                        <i class="bi bi-check-circle"></i> Завершен
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body">
+                    {% if lesson.lesson_type == 'video' %}
+                    <!-- Видео урок -->
+                    {% if lesson.video_url %}
+                    <div class="ratio ratio-16x9 mb-4">
+                        <iframe src="{{ lesson.video_url }}" allowfullscreen></iframe>
+                    </div>
+                    {% elif lesson.video_file %}
+                    <div class="ratio ratio-16x9 mb-4">
+                        <video controls>
+                            <source src="{{ lesson.video_file.url }}" type="video/mp4">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                    </div>
+                    {% endif %}
+                    
+                    {% elif lesson.lesson_type == 'quiz' %}
+                    <!-- Квиз -->
+                    {% if lesson.quiz %}
+                    <div class="alert alert-info">
+                        <h5><i class="bi bi-question-circle"></i> Квиз</h5>
+                        <p><strong>Проходной балл:</strong> {{ lesson.quiz.passing_score }}%</p>
+                        <p><strong>Попыток:</strong> {{ lesson.quiz.max_attempts }}</p>
+                        {% if lesson.quiz.time_limit %}
+                        <p><strong>Время:</strong> {{ lesson.quiz.time_limit }} минут</p>
+                        {% endif %}
+                    </div>
+                    <div class="text-center">
+                        <a href="{% url 'quiz_take' course.slug lesson.id %}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-play-circle"></i> Начать квиз
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Квиз еще не настроен для этого урока.
+                    </div>
+                    {% endif %}
+                    
+                    {% elif lesson.lesson_type == 'assignment' %}
+                    <!-- Домашнее задание -->
+                    {% if lesson.assignment %}
+                    <div class="alert alert-primary">
+                        <h5><i class="bi bi-clipboard-check"></i> Домашнее задание</h5>
+                        {% if lesson.assignment.due_date %}
+                        <p><strong>Срок сдачи:</strong> {{ lesson.assignment.due_date|date:"d.m.Y H:i" }}</p>
+                        {% endif %}
+                        <p><strong>Максимальный размер файла:</strong> {{ lesson.assignment.max_file_size }} МБ</p>
+                        <p><strong>Разрешенные форматы:</strong> {{ lesson.assignment.allowed_file_types }}</p>
+                    </div>
+                    
+                    <div class="assignment-instructions mb-4">
+                        <h6>Инструкции:</h6>
+                        {{ lesson.assignment.instructions|linebreaks }}
+                    </div>
+                    
+                    <!-- Форма загрузки задания -->
+                    {% if user_submission %}
+                    <div class="alert alert-success">
+                        <h6><i class="bi bi-check-circle"></i> Задание отправлено</h6>
+                        <p><strong>Статус:</strong> {{ user_submission.get_status_display }}</p>
+                        {% if user_submission.grade %}
+                        <p><strong>Оценка:</strong> {{ user_submission.grade }}/100</p>
+                        {% endif %}
+                        {% if user_submission.instructor_feedback %}
+                        <p><strong>Отзыв преподавателя:</strong> {{ user_submission.instructor_feedback }}</p>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <form method="post" enctype="multipart/form-data" class="mt-4">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="assignment_file" class="form-label">Загрузить файл</label>
+                            <input type="file" class="form-control" id="assignment_file" name="assignment_file" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="assignment_comment" class="form-label">Комментарий (необязательно)</label>
+                            <textarea class="form-control" id="assignment_comment" name="assignment_comment" rows="3"></textarea>
+                        </div>
+                        <button type="submit" name="action" value="submit_assignment" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Отправить задание
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Задание еще не настроено для этого урока.
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <!-- Обычный текстовый урок -->
+                    {% if lesson.video_url %}
+                    <div class="ratio ratio-16x9 mb-4">
+                        <iframe src="{{ lesson.video_url }}" allowfullscreen></iframe>
+                    </div>
+                    {% elif lesson.video_file %}
+                    <div class="ratio ratio-16x9 mb-4">
+                        <video controls>
+                            <source src="{{ lesson.video_file.url }}" type="video/mp4">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- Содержимое урока (для всех типов) -->
+                    {% if lesson.content %}
+                    <div class="lesson-content mt-4">
+                        {{ lesson.content|linebreaks }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Вложения -->
+                    {% if lesson.attachments.all %}
+                    <div class="mt-4">
+                        <h5>Материалы к уроку</h5>
+                        <div class="list-group">
+                            {% for attachment in lesson.attachments.all %}
+                            <a href="{{ attachment.file.url }}" target="_blank" 
+                               class="list-group-item list-group-item-action">
+                                <i class="bi bi-file-earmark-arrow-down"></i> {{ attachment.title }}
+                                <small class="text-muted"> - {{ attachment.uploaded_at|date:"d.m.Y" }}</small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Навигация между уроками -->
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        {% if prev_lesson %}
+                        <a href="{% url 'lesson_detail' course.slug prev_lesson.id %}" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left"></i> Предыдущий урок
+                        </a>
+                        {% else %}
+                        <div></div>
+                        {% endif %}
+                        
+                        {% if next_lesson %}
+                        <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
+                           class="btn btn-primary">
+                            Следующий урок <i class="bi bi-arrow-right"></i>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'my_courses' %}" class="btn btn-success">
+                            <i class="bi bi-trophy"></i> Вернуться к курсам
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS для урока -->
+<style>
+.lesson-content {
+    font-size: 1.1em;
+    line-height: 1.7;
+}
+
+.lesson-content h1, .lesson-content h2, .lesson-content h3 {
+    color: var(--primary-color);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.lesson-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.lesson-content code {
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.lesson-content pre {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    overflow-x: auto;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Фильтр для получения значения из словаря в шаблоне
+document.addEventListener('DOMContentLoaded', function() {
+    // Автоматически отмечать урок как просмотренный через определенное время
+    setTimeout(function() {
+        // Здесь можно добавить логику автоматического завершения урока
+    }, 30000); // 30 секунд
+});
+</script>
+{% endblock %}

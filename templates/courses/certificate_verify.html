@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Верификация сертификата{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if verified %}
+                    <div class="mb-4">
+                        <i class="bi bi-patch-check text-success" style="font-size: 4rem;"></i>
+                        <h2 class="text-success mt-3">Сертификат подтвержден</h2>
+                        <p class="text-muted">Сертификат является подлинным и выдан нашей платформой</p>
+                    </div>
+                    
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h5 class="card-title">Детали сертификата</h5>
+                            
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-start fw-bold">Номер сертификата:</td>
+                                    <td class="text-start">{{ certificate.certificate_id }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start fw-bold">Студент:</td>
+                                    <td class="text-start">{{ certificate.user.get_full_name|default:certificate.user.username }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start fw-bold">Курс:</td>
+                                    <td class="text-start">{{ certificate.course.title }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start fw-bold">Тип курса:</td>
+                                    <td class="text-start">{{ certificate.course.get_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start fw-bold">Дата завершения:</td>
+                                    <td class="text-start">{{ certificate.completion_date|date:"d.m.Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start fw-bold">Дата выдачи:</td>
+                                    <td class="text-start">{{ certificate.issued_at|date:"d.m.Y" }}</td>
+                                </tr>
+                                {% if certificate.grade %}
+                                <tr>
+                                    <td class="text-start fw-bold">Итоговая оценка:</td>
+                                    <td class="text-start">{{ certificate.grade }}/100</td>
+                                </tr>
+                                {% endif %}
+                                {% if certificate.total_hours %}
+                                <tr>
+                                    <td class="text-start fw-bold">Продолжительность:</td>
+                                    <td class="text-start">{{ certificate.total_hours }} ч.</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td class="text-start fw-bold">Преподаватель:</td>
+                                    <td class="text-start">{{ certificate.course.instructor.get_full_name|default:certificate.course.instructor.username }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {% else %}
+                    <div class="mb-4">
+                        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                        <h2 class="text-warning mt-3">Сертификат не найден</h2>
+                        <p class="text-muted">
+                            Сертификат с номером <code>{{ certificate_id }}</code> не найден в нашей базе данных.<br>
+                            Проверьте корректность номера или обратитесь к организаторам курса.
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Как проверить подлинность сертификата?</h6>
+                        <ul class="text-start mb-0">
+                            <li>Номер сертификата должен содержать 16 символов</li>
+                            <li>Используйте только официальные ссылки для проверки</li>
+                            <li>При сомнениях обращайтесь к администрации платформы</li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'home' %}" class="btn btn-primary">
+                            <i class="bi bi-house"></i> На главную
+                        </a>
+                        {% if verified and user.is_authenticated and certificate.user == user %}
+                        <a href="{% url 'certificate_view' certificate.certificate_id %}" class="btn btn-success ms-2">
+                            <i class="bi bi-download"></i> Скачать PDF
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.table td {
+    padding: 0.5rem 0.75rem;
+}
+
+@media print {
+    .btn, .alert {
+        display: none !important;
+    }
+}
+</style>
+{% endblock %}

@@ -141,6 +141,9 @@ REST_FRAMEWORK = {
     ),
 }
 
+X_FRAME_OPTIONS = 'ALLOWALL'
+
+
 # JWT settings
 from datetime import timedelta
 
@@ -148,6 +151,9 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
+
+# Site URL for certificates
+SITE_URL = 'http://127.0.0.1:8000'
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [

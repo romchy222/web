@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Создание курса - Платформа Курсов{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">Создать новый курс</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Основная информация -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Основная информация</h5>
+                            
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Название курса *</label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       value="{{ form_data.title|default:'' }}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Описание курса *</label>
+                                <textarea class="form-control" id="description" name="description" 
+                                          rows="4" required>{{ form_data.description|default:'' }}</textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="type" class="form-label">Тип курса *</label>
+                                    <select class="form-select" id="type" name="type" required onchange="toggleFields()">
+                                        <option value="">Выберите тип</option>
+                                        <option value="online" {% if form_data.type == 'online' %}selected{% endif %}>Онлайн курс</option>
+                                        <option value="offline" {% if form_data.type == 'offline' %}selected{% endif %}>Офлайн курс</option>
+                                        <option value="webinar" {% if form_data.type == 'webinar' %}selected{% endif %}>Вебинар</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="category" class="form-label">Категория</label>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="">Выберите категорию</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}" {% if form_data.category == category.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ category.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3 mt-3">
+                                <label for="price" class="form-label">Цена (₽)</label>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       value="{{ form_data.price|default:'0' }}" min="0" step="0.01">
+                            </div>
+                        </div>
+
+                        <!-- Дополнительные поля для офлайн курсов -->
+                        <div id="offline-fields" class="mb-4" style="display: none;">
+                            <h5 class="border-bottom pb-2">Офлайн курс</h5>
+                            
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Адрес проведения</label>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       value="{{ form_data.location|default:'' }}"
+                                       placeholder="г. Москва, ул. Примерная, д. 1">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="max_students" class="form-label">Максимальное количество участников</label>
+                                <input type="number" class="form-control" id="max_students" name="max_students" 
+                                       value="{{ form_data.max_students|default:'' }}" min="1">
+                            </div>
+                        </div>
+
+                        <!-- Дополнительные поля для вебинаров -->
+                        <div id="webinar-fields" class="mb-4" style="display: none;">
+                            <h5 class="border-bottom pb-2">Вебинар</h5>
+                            
+                            <div class="mb-3">
+                                <label for="webinar_link" class="form-label">Ссылка на трансляцию</label>
+                                <input type="url" class="form-control" id="webinar_link" name="webinar_link" 
+                                       value="{{ form_data.webinar_link|default:'' }}"
+                                       placeholder="https://zoom.us/j/example">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="start_date" class="form-label">Дата и время начала</label>
+                                <input type="datetime-local" class="form-control" id="start_date" name="start_date" 
+                                       value="{{ form_data.start_date|default:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            Курс будет создан как черновик. После создания добавьте модули и уроки через админ-панель, 
+                            затем опубликуйте курс для студентов.
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'instructor_dashboard' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Создать курс
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFields() {
+    const courseType = document.getElementById('type').value;
+    const offlineFields = document.getElementById('offline-fields');
+    const webinarFields = document.getElementById('webinar-fields');
+    
+    offlineFields.style.display = courseType === 'offline' ? 'block' : 'none';
+    webinarFields.style.display = courseType === 'webinar' ? 'block' : 'none';
+}
+
+// Вызовем при загрузке страницы
+document.addEventListener('DOMContentLoaded', toggleFields);
+</script>
+{% endblock %}

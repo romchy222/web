@@ -41,6 +41,13 @@
                             {% if enrollment.completed %}
                             <div class="alert alert-success py-2 mb-2">
                                 <i class="bi bi-check-circle"></i> Курс завершён {{ enrollment.completed_at|date:"d.m.Y" }}
+                                {% if enrollment.certificate %}
+                                <div class="mt-2">
+                                    <a href="{% url 'certificate_view' enrollment.certificate.certificate_id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-award"></i> Скачать сертификат
+                                    </a>
+                                </div>
+                                {% endif %}
                             </div>
                             {% endif %}
 
@@ -48,9 +55,26 @@
                                 <small class="text-muted">
                                     <i class="bi bi-calendar"></i> Записан: {{ enrollment.enrolled_at|date:"d.m.Y" }}
                                 </small>
-                                <a href="/courses/{{ enrollment.course.slug }}/" class="btn btn-sm btn-primary">
-                                    {% if enrollment.completed %}Повторить{% else %}Продолжить{% endif %}
-                                </a>
+                                <div>
+                                    {% if not enrollment.completed %}
+                                    {% if enrollment.last_lesson %}
+                                    <a href="{% url 'lesson_detail' enrollment.course.slug enrollment.last_lesson.id %}" class="btn btn-sm btn-success me-1">
+                                        Продолжить урок
+                                    </a>
+                                    {% else %}
+                                    {% with first_lesson=enrollment.course.modules.first.lessons.first %}
+                                    {% if first_lesson %}
+                                    <a href="{% url 'lesson_detail' enrollment.course.slug first_lesson.id %}" class="btn btn-sm btn-success me-1">
+                                        Начать курс
+                                    </a>
+                                    {% endif %}
+                                    {% endwith %}
+                                    {% endif %}
+                                    {% endif %}
+                                    <a href="{% url 'course_detail' enrollment.course.slug %}" class="btn btn-sm btn-outline-primary">
+                                        {% if enrollment.completed %}Повторить{% else %}Обзор{% endif %}
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

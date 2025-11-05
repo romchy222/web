@@ -70,7 +70,28 @@
                             <h2 class="accordion-header">
                                 <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
                                         data-bs-toggle="collapse" data-bs-target="#module{{ module.id }}">
-                                    {{ forloop.counter }}. {{ module.title }}
+                                    <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                        <span>{{ forloop.counter }}. {{ module.title }}</span>
+                                        {% if is_enrolled and module.progress %}
+                                        <div class="d-flex align-items-center">
+                                            {% if module.progress.completed %}
+                                            <span class="badge bg-success me-2">
+                                                <i class="bi bi-check-circle"></i> Завершен
+                                            </span>
+                                            {% else %}
+                                            <div class="progress me-2" style="width: 100px; height: 20px;">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {{ module.progress.completion_percentage }}%">
+                                                    {{ module.progress.completion_percentage }}%
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            <small class="text-muted">
+                                                {{ module.progress.completed_lessons }}/{{ module.progress.total_lessons }}
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                 </button>
                             </h2>
                             <div id="module{{ module.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
@@ -79,10 +100,32 @@
                                     <p class="text-muted">{{ module.description }}</p>
                                     <ul class="list-unstyled">
                                         {% for lesson in module.lessons.all %}
-                                        <li class="mb-2">
-                                            <i class="bi bi-play-circle text-primary"></i> {{ lesson.title }}
-                                            {% if lesson.duration %}
-                                            <small class="text-muted">({{ lesson.duration }} мин)</small>
+                                        <li class="mb-2 d-flex align-items-center justify-content-between">
+                                            <div>
+                                                {% if is_enrolled %}
+                                                <a href="{% url 'lesson_detail' course.slug lesson.id %}" class="text-decoration-none">
+                                                    {% if lesson.lesson_type == 'video' %}
+                                                    <i class="bi bi-play-circle text-primary"></i>
+                                                    {% elif lesson.lesson_type == 'quiz' %}
+                                                    <i class="bi bi-question-circle text-warning"></i>
+                                                    {% elif lesson.lesson_type == 'assignment' %}
+                                                    <i class="bi bi-clipboard-check text-info"></i>
+                                                    {% else %}
+                                                    <i class="bi bi-file-text text-secondary"></i>
+                                                    {% endif %}
+                                                    {{ lesson.title }}
+                                                </a>
+                                                {% else %}
+                                                <i class="bi bi-lock text-muted"></i> {{ lesson.title }}
+                                                {% endif %}
+                                                {% if lesson.duration %}
+                                                <small class="text-muted ms-2">({{ lesson.duration }} мин)</small>
+                                                {% endif %}
+                                            </div>
+                                            {% if lesson.lesson_type != 'text' %}
+                                            <span class="badge badge-{{ lesson.lesson_type }} ms-2">
+                                                {{ lesson.get_lesson_type_display }}
+                                            </span>
                                             {% endif %}
                                         </li>
                                         {% endfor %}
@@ -136,10 +179,25 @@
                                 <span>{{ enrollment.progress }}%</span>
                             </div>
                             <div class="progress">
-                                <div class="progress-bar" style="width: {{ enrollment.progress }}%"></div>
+                                <div class="progress-bar {% if enrollment.completed %}bg-success{% endif %}" style="width: {{ enrollment.progress }}%"></div>
                             </div>
                         </div>
+                        
+                        {% if enrollment.completed %}
+                        <div class="alert alert-success mb-3">
+                            <i class="bi bi-trophy"></i> <strong>Курс завершен!</strong><br>
+                            <small>{{ enrollment.completed_at|date:"d.m.Y" }}</small>
+                            {% if enrollment.certificate %}
+                            <div class="mt-2">
+                                <a href="{% url 'certificate_view' enrollment.certificate.certificate_id %}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-award"></i> Скачать сертификат
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
                         <a href="/my-courses/" class="btn btn-primary w-100">Продолжить обучение</a>
+                        {% endif %}
                         {% endif %}
                         {% else %}
                         <form method="post">

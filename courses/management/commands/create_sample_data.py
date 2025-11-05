@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from users.models import User
-from courses.models import Category, Course, Module, Lesson
+from courses.models import Category, Course, Module, Lesson, Quiz, Question, QuestionOption, Assignment
 
 
 class Command(BaseCommand):
@@ -127,14 +127,17 @@ class Command(BaseCommand):
                 Lesson.objects.create(
                     module=module1,
                     title='Добро пожаловать',
+                    lesson_type='text',
                     content='Добро пожаловать на курс! В этом уроке мы познакомимся с программой.',
                     order=1,
                     duration=15
                 )
                 Lesson.objects.create(
                     module=module1,
-                    title='Как работать с курсом',
-                    content='Инструкция по работе с материалами курса.',
+                    title='Видео-введение',
+                    lesson_type='video',
+                    content='Посмотрите это видео для лучшего понимания курса.',
+                    video_url='https://www.youtube.com/embed/dQw4w9WgXcQ',
                     order=2,
                     duration=10
                 )
@@ -145,13 +148,77 @@ class Command(BaseCommand):
                     description='Базовые концепции',
                     order=2
                 )
-                Lesson.objects.create(
+                lesson3 = Lesson.objects.create(
                     module=module2,
                     title='Первые шаги',
+                    lesson_type='text',
                     content='Начинаем изучать основы.',
                     order=1,
                     duration=30
                 )
+                
+                # Добавляем квиз
+                quiz_lesson = Lesson.objects.create(
+                    module=module2,
+                    title='Проверочный квиз',
+                    lesson_type='quiz',
+                    content='Проверьте свои знания по пройденному материалу.',
+                    order=2,
+                    duration=15
+                )
+                
+                # Добавляем домашнее задание
+                assignment_lesson = Lesson.objects.create(
+                    module=module2,
+                    title='Практическое задание',
+                    lesson_type='assignment',
+                    content='Выполните практическое задание для закрепления материала.',
+                    order=3,
+                    duration=60
+                )
+                
+                # Создаем квиз только для курса Python
+                if course.slug == 'python-beginners':
+                    quiz = Quiz.objects.create(
+                        lesson=quiz_lesson,
+                        passing_score=75,
+                        max_attempts=3,
+                        time_limit=10
+                    )
+                    
+                    # Добавляем вопросы к квизу
+                    q1 = Question.objects.create(
+                        quiz=quiz,
+                        question_text='Что такое Python?',
+                        question_type='single',
+                        points=10,
+                        order=1
+                    )
+                    
+                    QuestionOption.objects.create(question=q1, option_text='Язык программирования', is_correct=True, order=1)
+                    QuestionOption.objects.create(question=q1, option_text='Змея', is_correct=False, order=2)
+                    QuestionOption.objects.create(question=q1, option_text='Фреймворк', is_correct=False, order=3)
+                    
+                    q2 = Question.objects.create(
+                        quiz=quiz,
+                        question_text='Какие из следующих типов данных есть в Python?',
+                        question_type='multiple',
+                        points=15,
+                        order=2
+                    )
+                    
+                    QuestionOption.objects.create(question=q2, option_text='int', is_correct=True, order=1)
+                    QuestionOption.objects.create(question=q2, option_text='str', is_correct=True, order=2)
+                    QuestionOption.objects.create(question=q2, option_text='boolean', is_correct=False, order=3)
+                    QuestionOption.objects.create(question=q2, option_text='bool', is_correct=True, order=4)
+                    
+                    # Создаем задание
+                    Assignment.objects.create(
+                        lesson=assignment_lesson,
+                        instructions='Напишите простую программу на Python, которая выводит "Hello, World!" на экран. Сохраните код в файл hello.py и загрузите его.',
+                        max_file_size=1,
+                        allowed_file_types='.py,.txt'
+                    )
 
         self.stdout.write(self.style.SUCCESS(f'✓ Создано {len(courses_data)} курсов с модулями и уроками'))
         self.stdout.write(self.style.SUCCESS('\nГотово! Тестовые данные созданы.'))

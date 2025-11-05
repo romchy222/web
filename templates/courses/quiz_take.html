@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Квиз: {{ lesson.title }} - {{ course.title }} - Платформа Курсов{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Заголовок квиза -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="bi bi-question-circle"></i> {{ lesson.title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Курс:</strong> {{ course.title }}</p>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><strong>Проходной балл:</strong> {{ quiz.passing_score }}%</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Максимум попыток:</strong> {{ quiz.max_attempts }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Попыток использовано:</strong> {{ attempts_count }}</p>
+                        </div>
+                    </div>
+                    {% if quiz.time_limit %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-clock"></i> <strong>Ограничение по времени:</strong> {{ quiz.time_limit }} минут
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- История попыток -->
+            {% if user_attempts %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Ваши попытки</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Результат</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attempt in user_attempts %}
+                                <tr>
+                                    <td>{{ attempt.completed_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ attempt.score }}/{{ attempt.max_score }} ({{ attempt.score|floatformat:0 }}/{{ attempt.max_score }}*100|floatformat:1 }}%)</td>
+                                    <td>
+                                        {% if attempt.is_passed %}
+                                        <span class="badge bg-success">Пройден</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Не пройден</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Лучший результат -->
+            {% if best_attempt %}
+            <div class="alert alert-success">
+                <i class="bi bi-trophy"></i> 
+                <strong>Лучший результат:</strong> {{ best_attempt.score }}/{{ best_attempt.max_score }} 
+                ({{ best_attempt.score|floatformat:0 }}/{{ best_attempt.max_score }}*100|floatformat:1 }}%) - Квиз пройден!
+            </div>
+            {% endif %}
+
+            <!-- Форма квиза -->
+            {% if attempts_count < quiz.max_attempts %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Попытка {{ attempts_count|add:1 }} из {{ quiz.max_attempts }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="quizForm">
+                        {% csrf_token %}
+                        
+                        {% for question in quiz.questions.all %}
+                        <div class="question-block mb-4 p-3 border rounded">
+                            <h6 class="fw-bold">Вопрос {{ forloop.counter }} ({{ question.points }} балл{{ question.points|pluralize:"а,ов" }})</h6>
+                            <p>{{ question.question_text }}</p>
+                            
+                            {% if question.question_type == 'single' %}
+                            <!-- Одиночный выбор -->
+                            {% for option in question.options.all %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" 
+                                       name="question_{{ question.id }}" value="{{ option.id }}" 
+                                       id="q{{ question.id }}_{{ option.id }}">
+                                <label class="form-check-label" for="q{{ question.id }}_{{ option.id }}">
+                                    {{ option.option_text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                            
+                            {% elif question.question_type == 'multiple' %}
+                            <!-- Множественный выбор -->
+                            <small class="text-muted">Выберите все правильные варианты:</small>
+                            {% for option in question.options.all %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       name="question_{{ question.id }}" value="{{ option.id }}" 
+                                       id="q{{ question.id }}_{{ option.id }}">
+                                <label class="form-check-label" for="q{{ question.id }}_{{ option.id }}">
+                                    {{ option.option_text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                            
+                            {% elif question.question_type == 'text' %}
+                            <!-- Текстовый ответ -->
+                            <input type="text" class="form-control" name="question_{{ question.id }}" 
+                                   placeholder="Введите ваш ответ">
+                                   
+                            {% elif question.question_type == 'number' %}
+                            <!-- Числовой ответ -->
+                            <input type="number" class="form-control" name="question_{{ question.id }}" 
+                                   placeholder="Введите число">
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-warning">
+                            В этом квизе пока нет вопросов.
+                        </div>
+                        {% endfor %}
+                        
+                        {% if quiz.questions.exists %}
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'lesson_detail' course.slug lesson.id %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Назад к уроку
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Завершить квиз
+                            </button>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+            
+            {% else %}
+            <!-- Исчерпаны попытки -->
+            <div class="alert alert-danger">
+                <h5><i class="bi bi-x-circle"></i> Попытки исчерпаны</h5>
+                <p>Вы использовали все {{ quiz.max_attempts }} попытки для этого квиза.</p>
+                <a href="{% url 'lesson_detail' course.slug lesson.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Назад к уроку
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Timer script if time limit exists -->
+{% if quiz.time_limit and attempts_count < quiz.max_attempts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let timeLimit = {{ quiz.time_limit }} * 60; // конвертируем минуты в секунды
+    let timer = setInterval(function() {
+        let minutes = Math.floor(timeLimit / 60);
+        let seconds = timeLimit % 60;
+        
+        // Создаем или обновляем таймер
+        let timerElement = document.getElementById('timer');
+        if (!timerElement) {
+            timerElement = document.createElement('div');
+            timerElement.id = 'timer';
+            timerElement.className = 'alert alert-warning position-fixed';
+            timerElement.style.top = '20px';
+            timerElement.style.right = '20px';
+            timerElement.style.zIndex = '9999';
+            document.body.appendChild(timerElement);
+        }
+        
+        timerElement.innerHTML = `<i class="bi bi-clock"></i> Осталось: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timeLimit <= 60) {
+            timerElement.className = 'alert alert-danger position-fixed';
+        }
+        
+        if (timeLimit <= 0) {
+            clearInterval(timer);
+            alert('Время вышло! Квиз будет автоматически отправлен.');
+            document.getElementById('quizForm').submit();
+        }
+        
+        timeLimit--;
+    }, 1000);
+});
+</script>
+{% endif %}
+{% endblock %}
