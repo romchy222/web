@@ -144,3 +144,85 @@ class Review(models.Model):
     
     class Meta:
         unique_together = ['course', 'user']
+
+
+class Quiz(models.Model):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='quizzes')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    passing_score = models.PositiveIntegerField(default=70, help_text='Minimum percentage to pass')
+    
+    def __str__(self):
+        return f"{self.lesson.title} - {self.title}"
+
+
+class Question(models.Model):
+    QUESTION_TYPES = (
+        ('single', 'Single Choice'),
+        ('multiple', 'Multiple Choice'),
+        ('text', 'Text Answer'),
+    )
+    
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
+    text = models.TextField()
+    question_type = models.CharField(max_length=20, choices=QUESTION_TYPES, default='single')
+    points = models.PositiveIntegerField(default=1)
+    order = models.PositiveIntegerField(default=0)
+    
+    def __str__(self):
+        return f"{self.quiz.title} - Q{self.order}"
+    
+    class Meta:
+        ordering = ['order']
+
+
+class Answer(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers')
+    text = models.TextField()
+    is_correct = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return f"{self.question.quiz.title} - {self.text[:50]}"
+
+
+class QuizAttempt(models.Model):
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='quiz_attempts')
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
+    score = models.FloatField(default=0)
+    passed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.enrollment.user.username} - {self.quiz.title} ({self.score}%)"
+    
+    class Meta:
+        ordering = ['-completed_at']
+
+
+class QuizAnswer(models.Model):
+    attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name='user_answers')
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    selected_answers = models.ManyToManyField(Answer, blank=True)
+    text_answer = models.TextField(blank=True)
+    is_correct = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return f"{self.attempt.enrollment.user.username} - {self.question.text[:50]}"
+
+
+class Certificate(models.Model):
+    enrollment = models.OneToOneField(Enrollment, on_delete=models.CASCADE, related_name='certificate')
+    certificate_number = models.CharField(max_length=50, unique=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Certificate #{self.certificate_number} - {self.enrollment.user.username}"
+    
+    def generate_certificate_number(self):
+        import uuid
+        return f"CERT-{uuid.uuid4().hex[:8].upper()}"
+    
+    def save(self, *args, **kwargs):
+        if not self.certificate_number:
+            self.certificate_number = self.generate_certificate_number()
+        super().save(*args, **kwargs)

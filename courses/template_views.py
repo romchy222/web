@@ -233,3 +233,89 @@ def instructor_dashboard_view(request):
 
 def about_view(request):
     return render(request, 'about.html')
+
+
+def contact_view(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+        
+        # In production, send email here
+        # For now, just show success message
+        messages.success(request, 'Спасибо за ваше сообщение! Мы свяжемся с вами в ближайшее время.')
+        return redirect('contact')
+    
+    return render(request, 'contact.html')
+
+
+@login_required
+def lesson_detail_view(request, course_slug, lesson_id):
+    course = get_object_or_404(Course, slug=course_slug, is_published=True)
+    lesson = get_object_or_404(Lesson, id=lesson_id, module__course=course)
+    
+    # Check if user is enrolled
+    enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
+    
+    # Get all modules with lessons
+    modules = course.modules.prefetch_related('lessons').all()
+    
+    # Get completed lesson IDs
+    from courses.models import LessonProgress
+    completed_lesson_ids = LessonProgress.objects.filter(
+        enrollment=enrollment,
+        completed=True
+    ).values_list('lesson_id', flat=True)
+    
+    # Check if current lesson is completed
+    is_completed = lesson.id in completed_lesson_ids
+    
+    # Handle marking lesson as complete
+    if request.method == 'POST':
+        progress, created = LessonProgress.objects.get_or_create(
+            enrollment=enrollment,
+            lesson=lesson
+        )
+        progress.completed = True
+        progress.completed_at = timezone.now()
+        progress.save()
+        
+        # Update course progress
+        total_lessons = Lesson.objects.filter(module__course=course).count()
+        completed_lessons = LessonProgress.objects.filter(
+            enrollment=enrollment,
+            completed=True
+        ).count()
+        enrollment.progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
+        
+        # Check if course is completed
+        if enrollment.progress == 100 and not enrollment.completed:
+            enrollment.completed = True
+            enrollment.completed_at = timezone.now()
+        
+        enrollment.save()
+        
+        messages.success(request, 'Урок отмечен как завершённый!')
+        return redirect('lesson_detail', course_slug=course_slug, lesson_id=lesson_id)
+    
+    # Find previous and next lessons
+    all_lessons = []
+    for module in modules:
+        all_lessons.extend(module.lessons.all())
+    
+    current_index = next((i for i, l in enumerate(all_lessons) if l.id == lesson.id), None)
+    previous_lesson = all_lessons[current_index - 1] if current_index and current_index > 0 else None
+    next_lesson = all_lessons[current_index + 1] if current_index is not None and current_index < len(all_lessons) - 1 else None
+    
+    context = {
+        'course': course,
+        'lesson': lesson,
+        'enrollment': enrollment,
+        'modules': modules,
+        'completed_lesson_ids': completed_lesson_ids,
+        'is_completed': is_completed,
+        'previous_lesson': previous_lesson,
+        'next_lesson': next_lesson,
+    }
+    return render(request, 'courses/lesson_detail.html', context)

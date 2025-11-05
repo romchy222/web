@@ -19,15 +19,16 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from courses.template_views import (
-    home_view, course_list_view, course_detail_view, 
+    home_view, course_list_view, course_detail_view, lesson_detail_view,
     my_courses_view, login_view, register_view, logout_view,
-    profile_view, instructor_dashboard_view, about_view
+    profile_view, instructor_dashboard_view, about_view, contact_view
 )
 
 urlpatterns = [
     path('', home_view, name='home'),
     path('courses/', course_list_view, name='course_list'),
     path('courses/<slug:slug>/', course_detail_view, name='course_detail'),
+    path('courses/<slug:course_slug>/lesson/<int:lesson_id>/', lesson_detail_view, name='lesson_detail'),
     path('my-courses/', my_courses_view, name='my_courses'),
     path('login/', login_view, name='login'),
     path('register/', register_view, name='register'),
@@ -35,6 +36,7 @@ urlpatterns = [
     path('profile/', profile_view, name='profile'),
     path('instructor/', instructor_dashboard_view, name='instructor_dashboard'),
     path('about/', about_view, name='about'),
+    path('contact/', contact_view, name='contact'),
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/', include('courses.urls')),

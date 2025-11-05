@@ -139,7 +139,12 @@
                                 <div class="progress-bar" style="width: {{ enrollment.progress }}%"></div>
                             </div>
                         </div>
-                        <a href="/my-courses/" class="btn btn-primary w-100">Продолжить обучение</a>
+                        {% if modules and modules.0.lessons.all %}
+                        <a href="{% url 'lesson_detail' course.slug modules.0.lessons.all.0.id %}" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-play-fill"></i> Начать обучение
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'my_courses' %}" class="btn btn-outline-primary w-100">Мои курсы</a>
                         {% endif %}
                         {% else %}
                         <form method="post">
