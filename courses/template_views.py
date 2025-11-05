@@ -57,14 +57,16 @@ def course_list_view(request):
 def course_detail_view(request, slug):
     course = get_object_or_404(Course, slug=slug, is_published=True)
     modules = course.modules.prefetch_related('lessons').all()
-    reviews = course.reviews.select_related('user').all()[:10]
+    reviews = course.reviews.select_related('user').all()
     
     is_enrolled = False
     enrollment = None
+    user_review = None
     
     if request.user.is_authenticated:
         enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
         is_enrolled = enrollment is not None
+        user_review = Review.objects.filter(user=request.user, course=course).first()
         
         # Запись на курс
         if request.method == 'POST':
@@ -82,6 +84,7 @@ def course_detail_view(request, slug):
         'reviews': reviews,
         'is_enrolled': is_enrolled,
         'enrollment': enrollment,
+        'user_review': user_review,
         'lessons_count': lessons_count,
         'enrollments_count': enrollments_count,
     }
@@ -161,7 +164,10 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
+    from courses.models import Certificate
+    
     enrollments = Enrollment.objects.filter(user=request.user).select_related('course')
+    certificates = Certificate.objects.filter(enrollment__user=request.user).select_related('enrollment__course')
     
     if request.method == 'POST':
         user = request.user
@@ -197,6 +203,7 @@ def profile_view(request):
     
     context = {
         'enrollments': enrollments[:6],
+        'certificates': certificates,
         'stats': stats,
         'instructor_stats': instructor_stats,
     }
@@ -235,6 +242,19 @@ def about_view(request):
     return render(request, 'about.html')
 
 
+@login_required
+def certificate_view(request, certificate_number):
+    from courses.models import Certificate
+    certificate = get_object_or_404(Certificate, certificate_number=certificate_number)
+    
+    # Check if user owns this certificate
+    if certificate.enrollment.user != request.user and not request.user.is_staff:
+        messages.error(request, 'У вас нет доступа к этому сертификату')
+        return redirect('profile')
+    
+    return render(request, 'certificate.html', {'certificate': certificate})
+
+
 def contact_view(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -248,6 +268,40 @@ def contact_view(request):
         return redirect('contact')
     
     return render(request, 'contact.html')
+
+
+@login_required
+def add_review_view(request, slug):
+    if request.method != 'POST':
+        return redirect('course_detail', slug=slug)
+    
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    
+    # Check if user is enrolled
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        messages.error(request, 'Вы должны быть записаны на курс, чтобы оставить отзыв')
+        return redirect('course_detail', slug=slug)
+    
+    # Check if user already reviewed
+    if Review.objects.filter(user=request.user, course=course).exists():
+        messages.warning(request, 'Вы уже оставили отзыв на этот курс')
+        return redirect('course_detail', slug=slug)
+    
+    rating = request.POST.get('rating')
+    comment = request.POST.get('comment')
+    
+    if rating and comment:
+        Review.objects.create(
+            user=request.user,
+            course=course,
+            rating=int(rating),
+            comment=comment
+        )
+        messages.success(request, 'Спасибо за ваш отзыв!')
+    else:
+        messages.error(request, 'Пожалуйста, заполните все поля')
+    
+    return redirect('course_detail', slug=slug)
 
 
 @login_required
@@ -293,10 +347,18 @@ def lesson_detail_view(request, course_slug, lesson_id):
         if enrollment.progress == 100 and not enrollment.completed:
             enrollment.completed = True
             enrollment.completed_at = timezone.now()
+            
+            # Generate certificate
+            from courses.models import Certificate
+            if not hasattr(enrollment, 'certificate'):
+                Certificate.objects.create(enrollment=enrollment)
+                messages.success(request, '🎉 Поздравляем! Вы завершили курс и получили сертификат!')
+            else:
+                messages.success(request, 'Урок отмечен как завершённый!')
+        else:
+            messages.success(request, 'Урок отмечен как завершённый!')
         
         enrollment.save()
-        
-        messages.success(request, 'Урок отмечен как завершённый!')
         return redirect('lesson_detail', course_slug=course_slug, lesson_id=lesson_id)
     
     # Find previous and next lessons

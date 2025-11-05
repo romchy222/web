@@ -21,19 +21,22 @@ from django.conf.urls.static import static
 from courses.template_views import (
     home_view, course_list_view, course_detail_view, lesson_detail_view,
     my_courses_view, login_view, register_view, logout_view,
-    profile_view, instructor_dashboard_view, about_view, contact_view
+    profile_view, instructor_dashboard_view, about_view, contact_view,
+    add_review_view, certificate_view
 )
 
 urlpatterns = [
     path('', home_view, name='home'),
     path('courses/', course_list_view, name='course_list'),
     path('courses/<slug:slug>/', course_detail_view, name='course_detail'),
+    path('courses/<slug:slug>/review/', add_review_view, name='add_review'),
     path('courses/<slug:course_slug>/lesson/<int:lesson_id>/', lesson_detail_view, name='lesson_detail'),
     path('my-courses/', my_courses_view, name='my_courses'),
     path('login/', login_view, name='login'),
     path('register/', register_view, name='register'),
     path('logout/', logout_view, name='logout'),
     path('profile/', profile_view, name='profile'),
+    path('certificate/<str:certificate_number>/', certificate_view, name='certificate'),
     path('instructor/', instructor_dashboard_view, name='instructor_dashboard'),
     path('about/', about_view, name='about'),
     path('contact/', contact_view, name='contact'),
