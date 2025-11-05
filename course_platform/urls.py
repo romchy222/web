@@ -22,7 +22,7 @@ from courses.template_views import (
     home_view, course_list_view, course_detail_view, lesson_detail_view,
     my_courses_view, login_view, register_view, logout_view,
     profile_view, instructor_dashboard_view, about_view, contact_view,
-    add_review_view, certificate_view
+    add_review_view, certificate_view, notifications_view, mark_all_notifications_read
 )
 
 urlpatterns = [
@@ -37,6 +37,8 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('profile/', profile_view, name='profile'),
     path('certificate/<str:certificate_number>/', certificate_view, name='certificate'),
+    path('notifications/', notifications_view, name='notifications'),
+    path('notifications/mark-all-read/', mark_all_notifications_read, name='mark_all_read'),
     path('instructor/', instructor_dashboard_view, name='instructor_dashboard'),
     path('about/', about_view, name='about'),
     path('contact/', contact_view, name='contact'),

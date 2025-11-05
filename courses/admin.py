@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (Category, Course, Module, Lesson, LessonAttachment,
                      Enrollment, LessonProgress, Attendance, Review,
-                     Quiz, Question, Answer, QuizAttempt, QuizAnswer, Certificate)
+                     Quiz, Question, Answer, QuizAttempt, QuizAnswer, Certificate,
+                     Notification)
 
 
 class ModuleInline(admin.TabularInline):
@@ -112,3 +113,10 @@ class CertificateAdmin(admin.ModelAdmin):
     list_display = ['certificate_number', 'enrollment', 'issued_at']
     search_fields = ['certificate_number', 'enrollment__user__username', 'enrollment__course__title']
     readonly_fields = ['certificate_number', 'issued_at']
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ['user', 'notification_type', 'title', 'is_read', 'created_at']
+    list_filter = ['notification_type', 'is_read', 'created_at']
+    search_fields = ['user__username', 'title', 'message']

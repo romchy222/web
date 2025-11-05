@@ -48,9 +48,15 @@
                                 <small class="text-muted">
                                     <i class="bi bi-calendar"></i> Записан: {{ enrollment.enrolled_at|date:"d.m.Y" }}
                                 </small>
-                                <a href="/courses/{{ enrollment.course.slug }}/" class="btn btn-sm btn-primary">
-                                    {% if enrollment.completed %}Повторить{% else %}Продолжить{% endif %}
+                                {% if enrollment.next_lesson %}
+                                <a href="{% url 'lesson_detail' enrollment.course.slug enrollment.next_lesson.id %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-play-fill"></i> {% if enrollment.completed %}Повторить{% else %}Продолжить{% endif %}
                                 </a>
+                                {% else %}
+                                <a href="{% url 'course_detail' enrollment.course.slug %}" class="btn btn-sm btn-outline-primary">
+                                    Просмотреть
+                                </a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

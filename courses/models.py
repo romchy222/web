@@ -226,3 +226,27 @@ class Certificate(models.Model):
         if not self.certificate_number:
             self.certificate_number = self.generate_certificate_number()
         super().save(*args, **kwargs)
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('enrollment', 'Enrollment'),
+        ('completion', 'Course Completion'),
+        ('certificate', 'Certificate Issued'),
+        ('review', 'New Review'),
+        ('announcement', 'Announcement'),
+    )
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    link = models.CharField(max_length=500, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
+    
+    class Meta:
+        ordering = ['-created_at']
