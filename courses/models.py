@@ -2,6 +2,9 @@ from django.db import models
 from django.conf import settings
 import uuid
 
+# Import platform settings models
+from .models_settings import PlatformSettings, CourseApplication
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
