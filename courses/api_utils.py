@@ -57,8 +57,9 @@ def health_check(request):
         # Check database connection
         connection.ensure_connection()
         db_status = 'connected'
-    except Exception as e:
-        db_status = f'error: {str(e)}'
+    except Exception:
+        # Don't expose exception details in production
+        db_status = 'error'
     
     # Get basic statistics
     try:
