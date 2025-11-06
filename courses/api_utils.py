@@ -41,8 +41,8 @@ def api_root(request):
             'notifications': '/api/notifications/ (requires authentication)',
         },
         'support': {
-            'documentation': 'https://github.com/yourusername/course-platform/blob/main/API_DOCUMENTATION.md',
-            'issues': 'https://github.com/yourusername/course-platform/issues',
+            'documentation': 'https://github.com/romchy222/web/blob/main/API_DOCUMENTATION.md',
+            'issues': 'https://github.com/romchy222/web/issues',
         }
     })
 
@@ -135,5 +135,5 @@ def api_documentation(request):
             '404': 'Not Found - Resource does not exist',
             '500': 'Internal Server Error'
         },
-        'full_documentation': 'https://github.com/yourusername/course-platform/blob/main/API_DOCUMENTATION.md'
+        'full_documentation': 'https://github.com/romchy222/web/blob/main/API_DOCUMENTATION.md'
     })

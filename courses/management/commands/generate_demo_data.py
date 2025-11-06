@@ -37,6 +37,11 @@ class Command(BaseCommand):
         enrollments_created = 0
         
         for student in students:
+            # Check if courses exist
+            if courses.count() == 0:
+                self.stdout.write(self.style.WARNING('No courses available for enrollment'))
+                break
+            
             # Enroll each student in 2-3 random courses
             num_courses = random.randint(2, min(3, courses.count()))
             selected_courses = random.sample(list(courses), num_courses)

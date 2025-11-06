@@ -187,8 +187,14 @@ class QuizViewSet(viewsets.ReadOnlyModelViewSet):
             if not isinstance(selected_ids, list):
                 selected_ids = [selected_ids]
             
+            # Validate and convert answer IDs
+            try:
+                selected_set = set(int(id) for id in selected_ids if str(id).isdigit())
+            except (ValueError, TypeError):
+                # Skip invalid answers
+                continue
+            
             correct_ids = set(question.answers.filter(is_correct=True).values_list('id', flat=True))
-            selected_set = set(int(id) for id in selected_ids)
             
             # Check if answer is correct
             is_correct = correct_ids == selected_set
