@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Контакты - Платформа Курсов{% endblock %}
+
+{% block content %}
+<div class="hero-section py-5" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white;">
+    <div class="container text-center py-5">
+        <h1 class="display-4 fw-bold mb-3">Свяжитесь с нами</h1>
+        <p class="lead">Мы всегда рады ответить на ваши вопросы</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <h2 class="mb-4">Контактная информация</h2>
+            
+            <div class="mb-4">
+                <h5><i class="bi bi-envelope-fill text-primary"></i> Email</h5>
+                <p class="text-muted">info@courseplatform.com</p>
+                <p class="text-muted">support@courseplatform.com</p>
+            </div>
+            
+            <div class="mb-4">
+                <h5><i class="bi bi-telephone-fill text-success"></i> Телефон</h5>
+                <p class="text-muted">+7 (000) 000-00-00</p>
+                <p class="text-muted">Пн-Пт: 9:00 - 18:00</p>
+            </div>
+            
+            <div class="mb-4">
+                <h5><i class="bi bi-geo-alt-fill text-danger"></i> Адрес</h5>
+                <p class="text-muted">Россия, Москва<br>ул. Примерная, д. 123</p>
+            </div>
+            
+            <div class="mb-4">
+                <h5><i class="bi bi-clock-fill text-warning"></i> Часы работы</h5>
+                <p class="text-muted">Понедельник - Пятница: 9:00 - 18:00<br>Суббота - Воскресенье: Выходной</p>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h3 class="mb-4">Отправить сообщение</h3>
+                    
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Ваше имя</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Тема</label>
+                            <input type="text" class="form-control" id="subject" name="subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Сообщение</label>
+                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Отправить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="text-center mb-4">Часто задаваемые вопросы</h3>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Как записаться на курс?</h5>
+                    <p class="card-text text-muted">Зарегистрируйтесь на платформе, выберите интересующий курс и нажмите кнопку "Записаться".</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Как получить сертификат?</h5>
+                    <p class="card-text text-muted">После завершения всех уроков курса сертификат будет доступен в вашем профиле.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Можно ли вернуть деньги?</h5>
+                    <p class="card-text text-muted">Да, в течение 14 дней после покупки вы можете запросить возврат средств.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Есть ли поддержка студентов?</h5>
+                    <p class="card-text text-muted">Да, наша команда поддержки работает 24/7 и всегда готова помочь.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

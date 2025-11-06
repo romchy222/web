@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Сертификат {{ certificate.certificate_number }} - Платформа Курсов{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-5" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-award-fill display-1 text-warning"></i>
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <h1 class="display-4 fw-bold text-primary">Сертификат об окончании курса</h1>
+                        <p class="lead text-muted">Платформа Курсов</p>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="text-center mb-4">
+                        <p class="lead">Настоящим подтверждается, что</p>
+                        <h2 class="display-5 fw-bold text-dark">{{ certificate.enrollment.user.get_full_name|default:certificate.enrollment.user.username }}</h2>
+                        <p class="lead">успешно завершил(а) курс</p>
+                        <h3 class="fw-bold text-primary">{{ certificate.enrollment.course.title }}</h3>
+                    </div>
+                    
+                    <div class="row text-center mt-5">
+                        <div class="col-md-4">
+                            <p class="mb-0"><strong>Дата выдачи</strong></p>
+                            <p class="text-muted">{{ certificate.issued_at|date:"d.m.Y" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-0"><strong>№ Сертификата</strong></p>
+                            <p class="text-muted">{{ certificate.certificate_number }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-0"><strong>Преподаватель</strong></p>
+                            <p class="text-muted">{{ certificate.enrollment.course.instructor.get_full_name|default:certificate.enrollment.course.instructor.username }}</p>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <p class="small text-muted">Этот сертификат подтверждает успешное завершение курса на платформе</p>
+                        <p class="small text-muted">Платформа Курсов © {{ certificate.issued_at.year }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <button onclick="window.print()" class="btn btn-primary btn-lg me-2">
+                    <i class="bi bi-printer"></i> Распечатать
+                </button>
+                <a href="{% url 'profile' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="bi bi-person"></i> Вернуться в профиль
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    nav, footer, .btn {
+        display: none !important;
+    }
+    .card {
+        border: 2px solid #000 !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}

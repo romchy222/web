@@ -48,6 +48,9 @@
                     <a class="nav-link" data-bs-toggle="tab" href="#courses">Курсы</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#certificates">Сертификаты</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#stats">Статистика</a>
                 </li>
                 <li class="nav-item">
@@ -96,6 +99,38 @@
                             <p class="text-muted">Нет активных курсов</p>
                         </div>
                         {% endfor %}
+                    </div>
+                </div>
+
+                <div id="certificates" class="tab-pane fade">
+                    <div class="row">
+                        {% if certificates %}
+                            {% for certificate in certificates %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <i class="bi bi-award-fill text-warning fs-1 me-3"></i>
+                                            <div>
+                                                <h6 class="mb-0">{{ certificate.enrollment.course.title }}</h6>
+                                                <small class="text-muted">{{ certificate.issued_at|date:"d.m.Y" }}</small>
+                                            </div>
+                                        </div>
+                                        <p class="small text-muted mb-2">№ {{ certificate.certificate_number }}</p>
+                                        <a href="{% url 'certificate' certificate.certificate_number %}" class="btn btn-sm btn-primary" target="_blank">
+                                            <i class="bi bi-eye"></i> Просмотреть
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12 text-center py-5">
+                                <i class="bi bi-award display-3 text-muted"></i>
+                                <p class="text-muted mt-3">У вас пока нет сертификатов</p>
+                                <p class="text-muted">Завершите курс на 100%, чтобы получить сертификат!</p>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 

@@ -54,23 +54,56 @@ def course_list_view(request):
     return render(request, 'courses/course_list.html', context)
 
 
+def create_notification(user, notification_type, title, message, link=''):
+    """Helper function to create notifications"""
+    from courses.models import Notification
+    Notification.objects.create(
+        user=user,
+        notification_type=notification_type,
+        title=title,
+        message=message,
+        link=link
+    )
+
+
 def course_detail_view(request, slug):
     course = get_object_or_404(Course, slug=slug, is_published=True)
     modules = course.modules.prefetch_related('lessons').all()
-    reviews = course.reviews.select_related('user').all()[:10]
+    reviews = course.reviews.select_related('user').all()
     
     is_enrolled = False
     enrollment = None
+    user_review = None
     
     if request.user.is_authenticated:
         enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
         is_enrolled = enrollment is not None
+        user_review = Review.objects.filter(user=request.user, course=course).first()
         
         # Запись на курс
         if request.method == 'POST':
             if not is_enrolled:
-                Enrollment.objects.create(user=request.user, course=course)
+                enrollment = Enrollment.objects.create(user=request.user, course=course)
                 messages.success(request, f'Вы успешно записались на курс "{course.title}"')
+                
+                # Create notification
+                create_notification(
+                    user=request.user,
+                    notification_type='enrollment',
+                    title=f'Вы записались на курс',
+                    message=f'Вы успешно записались на курс "{course.title}". Начните обучение прямо сейчас!',
+                    link=f'/courses/{course.slug}/'
+                )
+                
+                # Notify instructor
+                create_notification(
+                    user=course.instructor,
+                    notification_type='enrollment',
+                    title=f'Новый студент',
+                    message=f'{request.user.get_full_name() or request.user.username} записался на ваш курс "{course.title}"',
+                    link=f'/instructor/'
+                )
+                
                 return redirect('course_detail', slug=slug)
     
     lessons_count = Lesson.objects.filter(module__course=course).count()
@@ -82,6 +115,7 @@ def course_detail_view(request, slug):
         'reviews': reviews,
         'is_enrolled': is_enrolled,
         'enrollment': enrollment,
+        'user_review': user_review,
         'lessons_count': lessons_count,
         'enrollments_count': enrollments_count,
     }
@@ -90,7 +124,29 @@ def course_detail_view(request, slug):
 
 @login_required
 def my_courses_view(request):
+    from courses.models import LessonProgress
+    
     enrollments = Enrollment.objects.filter(user=request.user).select_related('course').order_by('-enrolled_at')
+    
+    # Add next lesson info to each enrollment
+    for enrollment in enrollments:
+        # Get all lessons for this course
+        all_lessons = Lesson.objects.filter(module__course=enrollment.course).order_by('module__order', 'order')
+        
+        # Get completed lesson IDs
+        completed_ids = LessonProgress.objects.filter(
+            enrollment=enrollment,
+            completed=True
+        ).values_list('lesson_id', flat=True)
+        
+        # Find first incomplete lesson
+        next_lesson = None
+        for lesson in all_lessons:
+            if lesson.id not in completed_ids:
+                next_lesson = lesson
+                break
+        
+        enrollment.next_lesson = next_lesson if next_lesson else (all_lessons.first() if all_lessons.exists() else None)
     
     context = {
         'enrollments': enrollments,
@@ -161,7 +217,10 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
+    from courses.models import Certificate
+    
     enrollments = Enrollment.objects.filter(user=request.user).select_related('course')
+    certificates = Certificate.objects.filter(enrollment__user=request.user).select_related('enrollment__course')
     
     if request.method == 'POST':
         user = request.user
@@ -197,6 +256,7 @@ def profile_view(request):
     
     context = {
         'enrollments': enrollments[:6],
+        'certificates': certificates,
         'stats': stats,
         'instructor_stats': instructor_stats,
     }
@@ -233,3 +293,187 @@ def instructor_dashboard_view(request):
 
 def about_view(request):
     return render(request, 'about.html')
+
+
+@login_required
+def certificate_view(request, certificate_number):
+    from courses.models import Certificate
+    certificate = get_object_or_404(Certificate, certificate_number=certificate_number)
+    
+    # Check if user owns this certificate
+    if certificate.enrollment.user != request.user and not request.user.is_staff:
+        messages.error(request, 'У вас нет доступа к этому сертификату')
+        return redirect('profile')
+    
+    return render(request, 'certificate.html', {'certificate': certificate})
+
+
+@login_required
+def notifications_view(request):
+    from courses.models import Notification
+    from django.core.paginator import Paginator
+    
+    # Mark as read if coming from a notification link
+    mark_read_id = request.GET.get('mark_read')
+    if mark_read_id:
+        Notification.objects.filter(id=mark_read_id, user=request.user).update(is_read=True)
+    
+    notifications_list = Notification.objects.filter(user=request.user)
+    paginator = Paginator(notifications_list, 20)
+    page = request.GET.get('page')
+    notifications = paginator.get_page(page)
+    
+    return render(request, 'notifications.html', {'notifications': notifications})
+
+
+@login_required
+def mark_all_notifications_read(request):
+    from courses.models import Notification
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    messages.success(request, 'Все уведомления отмечены как прочитанные')
+    return redirect('notifications')
+
+
+def contact_view(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+        
+        # In production, send email here
+        # For now, just show success message
+        messages.success(request, 'Спасибо за ваше сообщение! Мы свяжемся с вами в ближайшее время.')
+        return redirect('contact')
+    
+    return render(request, 'contact.html')
+
+
+@login_required
+def add_review_view(request, slug):
+    if request.method != 'POST':
+        return redirect('course_detail', slug=slug)
+    
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    
+    # Check if user is enrolled
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        messages.error(request, 'Вы должны быть записаны на курс, чтобы оставить отзыв')
+        return redirect('course_detail', slug=slug)
+    
+    # Check if user already reviewed
+    if Review.objects.filter(user=request.user, course=course).exists():
+        messages.warning(request, 'Вы уже оставили отзыв на этот курс')
+        return redirect('course_detail', slug=slug)
+    
+    rating = request.POST.get('rating')
+    comment = request.POST.get('comment')
+    
+    if rating and comment:
+        Review.objects.create(
+            user=request.user,
+            course=course,
+            rating=int(rating),
+            comment=comment
+        )
+        messages.success(request, 'Спасибо за ваш отзыв!')
+    else:
+        messages.error(request, 'Пожалуйста, заполните все поля')
+    
+    return redirect('course_detail', slug=slug)
+
+
+@login_required
+def lesson_detail_view(request, course_slug, lesson_id):
+    course = get_object_or_404(Course, slug=course_slug, is_published=True)
+    lesson = get_object_or_404(Lesson, id=lesson_id, module__course=course)
+    
+    # Check if user is enrolled
+    enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
+    
+    # Get all modules with lessons
+    modules = course.modules.prefetch_related('lessons').all()
+    
+    # Get completed lesson IDs
+    from courses.models import LessonProgress
+    completed_lesson_ids = LessonProgress.objects.filter(
+        enrollment=enrollment,
+        completed=True
+    ).values_list('lesson_id', flat=True)
+    
+    # Check if current lesson is completed
+    is_completed = lesson.id in completed_lesson_ids
+    
+    # Handle marking lesson as complete
+    if request.method == 'POST':
+        progress, created = LessonProgress.objects.get_or_create(
+            enrollment=enrollment,
+            lesson=lesson
+        )
+        progress.completed = True
+        progress.completed_at = timezone.now()
+        progress.save()
+        
+        # Update course progress (optimized with single aggregation query)
+        from django.db.models import Count, Q
+        lesson_stats = Lesson.objects.filter(module__course=course).aggregate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(
+                lessonprogress__enrollment=enrollment,
+                lessonprogress__completed=True
+            ))
+        )
+        total_lessons = lesson_stats['total']
+        completed_lessons = lesson_stats['completed']
+        enrollment.progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
+        
+        # Check if course is completed
+        if enrollment.progress == 100 and not enrollment.completed:
+            enrollment.completed = True
+            enrollment.completed_at = timezone.now()
+            
+            # Generate certificate
+            from courses.models import Certificate
+            try:
+                cert = enrollment.certificate
+            except Certificate.DoesNotExist:
+                cert = Certificate.objects.create(enrollment=enrollment)
+                
+                # Create notification
+                create_notification(
+                    user=request.user,
+                    notification_type='certificate',
+                    title='🎉 Сертификат получен!',
+                    message=f'Поздравляем! Вы завершили курс "{course.title}" и получили сертификат #{cert.certificate_number}',
+                    link=f'/certificate/{cert.certificate_number}/'
+                )
+                
+                messages.success(request, '🎉 Поздравляем! Вы завершили курс и получили сертификат!')
+            else:
+                messages.success(request, 'Урок отмечен как завершённый!')
+        else:
+            messages.success(request, 'Урок отмечен как завершённый!')
+        
+        enrollment.save()
+        return redirect('lesson_detail', course_slug=course_slug, lesson_id=lesson_id)
+    
+    # Find previous and next lessons (optimized with single query)
+    all_lessons = list(Lesson.objects.filter(
+        module__course=course
+    ).select_related('module').order_by('module__order', 'order'))
+    
+    current_index = next((i for i, l in enumerate(all_lessons) if l.id == lesson.id), None)
+    previous_lesson = all_lessons[current_index - 1] if current_index and current_index > 0 else None
+    next_lesson = all_lessons[current_index + 1] if current_index is not None and current_index < len(all_lessons) - 1 else None
+    
+    context = {
+        'course': course,
+        'lesson': lesson,
+        'enrollment': enrollment,
+        'modules': modules,
+        'completed_lesson_ids': completed_lesson_ids,
+        'is_completed': is_completed,
+        'previous_lesson': previous_lesson,
+        'next_lesson': next_lesson,
+    }
+    return render(request, 'courses/lesson_detail.html', context)
