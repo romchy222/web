@@ -24,6 +24,7 @@ from courses.template_views import (
     profile_view, instructor_dashboard_view, about_view, contact_view,
     add_review_view, certificate_view, notifications_view, mark_all_notifications_read
 )
+from courses.api_utils import api_root, health_check, api_documentation
 
 urlpatterns = [
     path('', home_view, name='home'),
@@ -43,6 +44,11 @@ urlpatterns = [
     path('about/', about_view, name='about'),
     path('contact/', contact_view, name='contact'),
     path('admin/', admin.site.urls),
+    # API utilities
+    path('api/info/', api_root, name='api-info'),
+    path('api/health/', health_check, name='api-health'),
+    path('api/docs/', api_documentation, name='api-docs'),
+    # API apps
     path('api/users/', include('users.urls')),
     path('api/', include('courses.urls')),
 ]
