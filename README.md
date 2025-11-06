@@ -101,6 +101,18 @@ Web/
 - `GET /api/reviews/?course={slug}` - Отзывы на курс
 - `POST /api/reviews/` - Добавить отзыв
 
+### Тесты
+- `GET /api/quizzes/{id}/` - Получить тест
+- `POST /api/quizzes/{id}/submit/` - Отправить ответы на тест
+
+### Сертификаты
+- `GET /api/certificates/` - Мои сертификаты
+
+### Уведомления
+- `GET /api/notifications/` - Мои уведомления
+- `POST /api/notifications/{id}/mark_read/` - Отметить как прочитанное
+- `POST /api/notifications/mark_all_read/` - Отметить все как прочитанные
+
 ## Фильтры курсов
 
 Примеры запросов:
@@ -164,6 +176,11 @@ CORS_ALLOWED_ORIGINS = [
 ```bash
 python manage.py test
 ```
+
+## Документация
+
+- **[API Documentation](API_DOCUMENTATION.md)** - Полная документация REST API
+- **[Deployment Guide](DEPLOYMENT.md)** - Руководство по деплою в production
 
 ## Деплой
 

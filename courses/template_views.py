@@ -5,10 +5,62 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db.models import Q, Count
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from .models import Course, Category, Enrollment, Module, Lesson, Review
+from .models_settings import PlatformSettings, CourseApplication
 from users.models import User
 
 
+def check_platform_mode(view_func):
+    """
+    Decorator to check platform mode and redirect to landing page if in application mode
+    """
+    def wrapper(request, *args, **kwargs):
+        settings = PlatformSettings.get_settings()
+        if settings.mode == 'applications' and request.path != '/landing/' and not request.path.startswith('/admin'):
+            return redirect('landing_page')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+def landing_page_view(request):
+    """
+    Landing page for application mode
+    """
+    settings = PlatformSettings.get_settings()
+    return render(request, 'landing_application.html', {'settings': settings})
+
+
+@require_http_methods(["POST"])
+def submit_application_view(request):
+    """
+    Handle application form submission
+    """
+    try:
+        application = CourseApplication.objects.create(
+            first_name=request.POST.get('first_name', ''),
+            last_name=request.POST.get('last_name', ''),
+            email=request.POST.get('email', ''),
+            phone=request.POST.get('phone', ''),
+            course_interest=request.POST.get('course_interest', ''),
+            message=request.POST.get('message', '')
+        )
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': 'Application submitted successfully'})
+        else:
+            messages.success(request, 'Спасибо за вашу заявку! Мы свяжемся с вами в ближайшее время.')
+            return redirect('landing_page')
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        else:
+            messages.error(request, 'Произошла ошибка. Пожалуйста, попробуйте снова.')
+            return redirect('landing_page')
+
+
+@check_platform_mode
 def home_view(request):
     popular_courses = Course.objects.filter(is_published=True).order_by('-created_at')[:6]
     upcoming_webinars = Course.objects.filter(
@@ -24,6 +76,7 @@ def home_view(request):
     return render(request, 'home.html', context)
 
 
+@check_platform_mode
 def course_list_view(request):
     courses = Course.objects.filter(is_published=True)
     categories = Category.objects.all()

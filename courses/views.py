@@ -4,11 +4,13 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from .models import (Category, Course, Module, Lesson, Enrollment, 
-                     LessonProgress, Attendance, Review)
+                     LessonProgress, Attendance, Review, Quiz, QuizAttempt, 
+                     Certificate, Notification)
 from .serializers import (CategorySerializer, CourseListSerializer, CourseDetailSerializer,
                           CourseCreateUpdateSerializer, ModuleSerializer, LessonSerializer,
                           EnrollmentSerializer, LessonProgressSerializer, AttendanceSerializer,
-                          ReviewSerializer)
+                          ReviewSerializer, QuizSerializer, QuizAttemptSerializer,
+                          CertificateSerializer, NotificationSerializer)
 
 
 class IsInstructorOrReadOnly(permissions.BasePermission):
@@ -144,3 +146,98 @@ class ReviewViewSet(viewsets.ModelViewSet):
         if course_slug:
             return Review.objects.filter(course__slug=course_slug)
         return Review.objects.all()
+
+
+class QuizViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @action(detail=True, methods=['post'])
+    def submit(self, request, pk=None):
+        """Submit quiz attempt and calculate score"""
+        quiz = self.get_object()
+        answers_data = request.data.get('answers', {})
+        
+        # Get enrollment
+        enrollment = Enrollment.objects.filter(
+            user=request.user,
+            course=quiz.lesson.module.course
+        ).first()
+        
+        if not enrollment:
+            return Response(
+                {'error': 'Not enrolled in this course'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create attempt
+        attempt = QuizAttempt.objects.create(
+            enrollment=enrollment,
+            quiz=quiz
+        )
+        
+        # Calculate score
+        total_points = 0
+        earned_points = 0
+        
+        for question in quiz.questions.all():
+            total_points += question.points
+            selected_ids = answers_data.get(str(question.id), [])
+            if not isinstance(selected_ids, list):
+                selected_ids = [selected_ids]
+            
+            # Validate and convert answer IDs
+            try:
+                selected_set = set(int(id) for id in selected_ids if str(id).isdigit())
+            except (ValueError, TypeError):
+                # Skip invalid answers
+                continue
+            
+            correct_ids = set(question.answers.filter(is_correct=True).values_list('id', flat=True))
+            
+            # Check if answer is correct
+            is_correct = correct_ids == selected_set
+            if is_correct:
+                earned_points += question.points
+        
+        # Calculate percentage
+        score = (earned_points / total_points * 100) if total_points > 0 else 0
+        attempt.score = score
+        attempt.passed = score >= quiz.passing_score
+        attempt.save()
+        
+        return Response({
+            'attempt_id': attempt.id,
+            'score': score,
+            'passed': attempt.passed,
+            'passing_score': quiz.passing_score
+        })
+
+
+class CertificateViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = CertificateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Certificate.objects.filter(enrollment__user=self.request.user)
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)
+    
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'marked as read'})
+    
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({'status': 'all marked as read'})

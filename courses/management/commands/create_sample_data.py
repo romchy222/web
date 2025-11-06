@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from users.models import User
-from courses.models import Category, Course, Module, Lesson
+from courses.models import Category, Course, Module, Lesson, Quiz, Question, Answer
 
 
 class Command(BaseCommand):
@@ -145,15 +145,48 @@ class Command(BaseCommand):
                     description='Базовые концепции',
                     order=2
                 )
-                Lesson.objects.create(
+                lesson3 = Lesson.objects.create(
                     module=module2,
                     title='Первые шаги',
                     content='Начинаем изучать основы.',
                     order=1,
                     duration=30
                 )
+                
+                # Add a quiz to the lesson
+                if course.slug in ['python-beginners', 'django-web-development']:
+                    quiz = Quiz.objects.create(
+                        lesson=lesson3,
+                        title=f'Тест: {lesson3.title}',
+                        description='Проверьте свои знания по этой теме',
+                        passing_score=70
+                    )
+                    
+                    # Add questions
+                    q1 = Question.objects.create(
+                        quiz=quiz,
+                        text='Что такое переменная в программировании?',
+                        question_type='single',
+                        points=1,
+                        order=1
+                    )
+                    Answer.objects.create(question=q1, text='Контейнер для хранения данных', is_correct=True)
+                    Answer.objects.create(question=q1, text='Функция для вычислений', is_correct=False)
+                    Answer.objects.create(question=q1, text='Тип данных', is_correct=False)
+                    
+                    q2 = Question.objects.create(
+                        quiz=quiz,
+                        text='Выберите правильные типы данных (несколько вариантов)',
+                        question_type='multiple',
+                        points=2,
+                        order=2
+                    )
+                    Answer.objects.create(question=q2, text='Integer (целое число)', is_correct=True)
+                    Answer.objects.create(question=q2, text='String (строка)', is_correct=True)
+                    Answer.objects.create(question=q2, text='Color (цвет)', is_correct=False)
+                    Answer.objects.create(question=q2, text='Boolean (логический)', is_correct=True)
 
-        self.stdout.write(self.style.SUCCESS(f'✓ Создано {len(courses_data)} курсов с модулями и уроками'))
+        self.stdout.write(self.style.SUCCESS(f'✓ Создано {len(courses_data)} курсов с модулями, уроками и тестами'))
         self.stdout.write(self.style.SUCCESS('\nГотово! Тестовые данные созданы.'))
         self.stdout.write('\nДанные для входа:')
         self.stdout.write('  Администратор: admin / admin123')

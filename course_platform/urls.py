@@ -22,10 +22,17 @@ from courses.template_views import (
     home_view, course_list_view, course_detail_view, lesson_detail_view,
     my_courses_view, login_view, register_view, logout_view,
     profile_view, instructor_dashboard_view, about_view, contact_view,
-    add_review_view, certificate_view, notifications_view, mark_all_notifications_read
+    add_review_view, certificate_view, notifications_view, mark_all_notifications_read,
+    landing_page_view, submit_application_view
 )
+from courses.api_utils import api_root, health_check, api_documentation
 
 urlpatterns = [
+    # Landing page for application mode
+    path('landing/', landing_page_view, name='landing_page'),
+    path('submit-application/', submit_application_view, name='submit_application'),
+    
+    # Regular pages
     path('', home_view, name='home'),
     path('courses/', course_list_view, name='course_list'),
     path('courses/<slug:slug>/', course_detail_view, name='course_detail'),
@@ -43,6 +50,11 @@ urlpatterns = [
     path('about/', about_view, name='about'),
     path('contact/', contact_view, name='contact'),
     path('admin/', admin.site.urls),
+    # API utilities
+    path('api/info/', api_root, name='api-info'),
+    path('api/health/', health_check, name='api-health'),
+    path('api/docs/', api_documentation, name='api-docs'),
+    # API apps
     path('api/users/', include('users.urls')),
     path('api/', include('courses.urls')),
 ]

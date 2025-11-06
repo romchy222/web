@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import (Category, Course, Module, Lesson, LessonAttachment, 
-                     Enrollment, LessonProgress, Attendance, Review)
+                     Enrollment, LessonProgress, Attendance, Review, 
+                     Quiz, Question, Answer, QuizAttempt, QuizAnswer, Certificate, Notification)
 from users.serializers import UserSerializer
 
 
@@ -100,5 +101,51 @@ class ReviewSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Review
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at']
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Answer
+        fields = ['id', 'text', 'is_correct']
+        read_only_fields = ['is_correct']  # Don't expose correct answers to students
+
+
+class QuestionSerializer(serializers.ModelSerializer):
+    answers = AnswerSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Question
+        fields = ['id', 'text', 'question_type', 'points', 'order', 'answers']
+
+
+class QuizSerializer(serializers.ModelSerializer):
+    questions = QuestionSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Quiz
+        fields = '__all__'
+
+
+class QuizAttemptSerializer(serializers.ModelSerializer):
+    quiz = QuizSerializer(read_only=True)
+    
+    class Meta:
+        model = QuizAttempt
+        fields = '__all__'
+
+
+class CertificateSerializer(serializers.ModelSerializer):
+    enrollment = EnrollmentSerializer(read_only=True)
+    
+    class Meta:
+        model = Certificate
+        fields = '__all__'
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
         fields = '__all__'
         read_only_fields = ['user', 'created_at']
